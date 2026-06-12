@@ -58,13 +58,24 @@ async fn query_targets_url(client: &reqwest::Client, url: &str) -> anyhow::Resul
 }
 
 pub fn pick_page_target(targets: &[CdpTarget]) -> anyhow::Result<CdpTarget> {
-    let pages = targets.iter().filter(|target| {
-        target.target_type == "page"
-            && target
-                .web_socket_debugger_url
-                .as_deref()
-                .is_some_and(|url| !url.is_empty())
-    });
+    let mut pages: Vec<&CdpTarget> = targets
+        .iter()
+        .filter(|target| {
+            target.target_type == "page"
+                && target
+                    .web_socket_debugger_url
+                    .as_deref()
+                    .is_some_and(|url| !url.is_empty())
+        })
+        .collect();
+    pages.sort_by_key(|target| target_is_avatar_overlay(target));
+
+    if let Some(target) = pages
+        .iter()
+        .find(|target| target.url == "app://-/index.html")
+    {
+        return Ok((*target).clone());
+    }
 
     let mut first_page = None;
     for target in pages {
@@ -80,4 +91,8 @@ pub fn pick_page_target(targets: &[CdpTarget]) -> anyhow::Result<CdpTarget> {
     }
 
     bail!("No injectable Codex page target found")
+}
+
+fn target_is_avatar_overlay(target: &CdpTarget) -> bool {
+    target.url.contains("initialRoute=%2Favatar-overlay") || target.url.contains("/avatar-overlay")
 }

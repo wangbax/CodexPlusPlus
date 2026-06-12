@@ -33,7 +33,7 @@ fn bridge_script_defines_expected_globals_and_binding() {
     assert!(script.contains("window.__codexSessionDeleteBridge"));
     assert!(script.contains("window.__codexSessionDeleteResolve"));
     assert!(script.contains("window.__codexSessionDeleteReject"));
-    assert!(script.contains("codexSessionDeleteV2"));
+    assert!(script.contains("codexSessionDeleteV3"));
 }
 
 #[test]
@@ -81,6 +81,59 @@ fn injection_script_times_out_backend_bridge_calls_and_falls_back_to_helper() {
     assert!(script.contains("/backend/repair"));
     assert!(script.contains("backend_status_bridge_failed_http_fallback_ok"));
     assert!(script.contains("backend_status_bridge_and_http_failed"));
+}
+
+#[test]
+fn injection_script_uses_cached_backend_status_for_menu_dialog() {
+    let script = assets::injection_script(57321);
+
+    assert!(script.contains("codexPlusBackendHeartbeatVersion = \"4\""));
+    assert!(script.contains("function backendStatusForDisplay()"));
+    assert!(script.contains("codexPlusBackendFailureCount < 2"));
+    assert!(script.contains("Date.now() - codexPlusBackendLastOkAt <= 12_000"));
+    assert!(script.contains("const backendDisplayStatus = backendStatusForDisplay();"));
+    assert!(script.contains("data-status=\"${escapeHtml(backendDisplayStatusName)}\""));
+    assert!(!script.contains("data-codex-backend-status=\"true\" data-status=\"checking\""));
+}
+
+#[test]
+fn injection_script_keeps_codex_plus_menu_unframed() {
+    let script = assets::injection_script(57321);
+
+    assert!(script.contains("codexDeleteStyleVersion = \"37\""));
+    assert!(script.contains("border: 0;"));
+    assert!(script.contains("background: transparent;"));
+    assert!(script.contains("codexPlusMenuVersion !== \"10\""));
+    assert!(script.contains("codexPlusTriggerInstalled === \"8\""));
+    assert!(!script.contains("height: calc(100% - 4px) !important;"));
+    assert!(script.contains("border: 1px solid var(--color-token-button-border"));
+    assert!(script.contains("background: transparent !important;"));
+    assert!(script.contains(".codex-plus-native-trigger:hover"));
+}
+
+#[test]
+fn injection_script_uses_codex_accent_for_enabled_toggles() {
+    let script = assets::injection_script(57321);
+
+    assert!(script.contains("--codex-plus-toggle-active-bg: var(--color-token-primary"));
+    assert!(script.contains("--codex-plus-toggle-active-border: var(--color-token-primary"));
+    assert!(
+        script.contains("--codex-plus-toggle-active-knob-bg: var(--color-token-button-foreground")
+    );
+    assert!(
+        script.contains(
+            "--codex-plus-toggle-active-knob-border: var(--color-token-button-foreground"
+        )
+    );
+    assert!(
+        !script.contains("--codex-plus-toggle-active-bg: var(--color-background-accent-active")
+    );
+    assert!(
+        !script.contains("--codex-plus-toggle-active-border: var(--color-background-accent-active")
+    );
+    assert!(
+        !script.contains("--codex-plus-toggle-active-bg: var(--color-token-checkbox-background")
+    );
 }
 
 #[test]
@@ -185,7 +238,9 @@ fn injection_script_keeps_bundled_marketplace_name_for_default_filter() {
 
     assert!(script.contains("codexPluginMarketplaceUnlockVersion = \"10\""));
     assert!(script.contains("if (name === \"openai-bundled\") return \"\""));
-    assert!(!script.contains("if (name === \"openai-bundled\") return \"codex-plus-openai-bundled\""));
+    assert!(
+        !script.contains("if (name === \"openai-bundled\") return \"codex-plus-openai-bundled\"")
+    );
     assert!(script.contains("if (name === \"openai-bundled\" || name === \"codex-plus-openai-bundled\") return \"OpenAI插件1(Codex++)\""));
 }
 
@@ -211,9 +266,13 @@ fn injection_script_expands_api_key_plugin_marketplace_requests() {
     assert!(script.contains("Array.prototype.filter"));
     assert!(script.contains("codexPluginBuildFlavorFilterPatch"));
     assert!(script.contains("isCodexPluginBuildFlavorFilter"));
-    assert!(script.contains("codexPluginOfficialMarketplaceName(plugin?.marketplaceName) && !callback(plugin)"));
+    assert!(script.contains(
+        "codexPluginOfficialMarketplaceName(plugin?.marketplaceName) && !callback(plugin)"
+    ));
     assert!(script.contains("isCodexPluginMarketplaceHiddenFilter"));
-    assert!(script.contains("codexPluginOfficialMarketplaceName(marketplace?.name) && !callback(marketplace)"));
+    assert!(script.contains(
+        "codexPluginOfficialMarketplaceName(marketplace?.name) && !callback(marketplace)"
+    ));
     assert!(script.contains("plugin_marketplace_hidden_filter_bypassed"));
     assert!(script.contains("method === \"list-plugins\""));
     assert!(script.contains("delete next.marketplaceKinds"));
@@ -221,10 +280,16 @@ fn injection_script_expands_api_key_plugin_marketplace_requests() {
     assert!(script.contains("pluginMarketplaceAliasForName"));
     assert!(script.contains("marketplace.name = alias"));
     assert!(script.contains("restorePluginMarketplaceName"));
-    assert!(script.contains("next.remoteMarketplaceName = restorePluginMarketplaceName(next.remoteMarketplaceName)"));
+    assert!(script.contains(
+        "next.remoteMarketplaceName = restorePluginMarketplaceName(next.remoteMarketplaceName)"
+    ));
     assert!(script.contains("if (name === \"openai-bundled\") return \"\""));
-    assert!(script.contains("if (name === \"openai-curated\") return \"codex-plus-openai-curated\""));
-    assert!(script.contains("if (name === \"openai-primary-runtime\") return \"codex-plus-openai-primary-runtime\""));
+    assert!(
+        script.contains("if (name === \"openai-curated\") return \"codex-plus-openai-curated\"")
+    );
+    assert!(script.contains(
+        "if (name === \"openai-primary-runtime\") return \"codex-plus-openai-primary-runtime\""
+    ));
     assert!(script.contains("OpenAI插件1(Codex++)"));
     assert!(script.contains("OpenAI插件2(Codex++)"));
     assert!(script.contains("OpenAI插件3(Codex++)"));
@@ -305,9 +370,20 @@ fn injection_script_keeps_session_action_buttons_in_pr_style() {
     let script = assets::injection_script(57321);
 
     assert!(script.contains("actionButtonClass = \"codex-session-action-button\""));
+    assert!(script.contains("codexActionGroupVersion = \"6\""));
+    assert!(script.contains("codexDeleteVersion = \"8\""));
+    assert!(script.contains("width: 20px;"));
+    assert!(script.contains("height: 20px;"));
+    assert!(script.contains("opacity: .5;"));
     assert!(script.contains("background: transparent;"));
-    assert!(script.contains("background: #363839;"));
+    assert!(script.contains("min-width: 140px;"));
+    assert!(script.contains("border-radius: var(--radius-xl, 15px);"));
+    assert!(script.contains("background: var(--color-token-dropdown-background"));
+    assert!(script.contains("min-height: 28.5703px;"));
     assert!(script.contains("cursor: default;"));
+    assert!(!script.contains("background: #363839;"));
+    assert!(!script.contains("color-mix(in srgb, var(--color-token-dropdown-background"));
+    assert!(!script.contains("backdrop-filter: blur(8px);"));
 }
 
 #[test]
@@ -316,9 +392,18 @@ fn injection_script_moves_export_and_project_move_into_more_menu() {
 
     assert!(script.contains("moreButtonClass = \"codex-session-more-button\""));
     assert!(script.contains("moreMenuClass = \"codex-session-more-menu\""));
-    assert!(script.contains("configureActionButton(moreButton, \"更多操作\", \"…\")"));
-    assert!(script.contains("createSessionMoreMenuItem(\"导出\""));
-    assert!(script.contains("createSessionMoreMenuItem(\"移动\""));
+    assert!(script.contains("sidebarMoreActions: \"More actions\""));
+    assert!(script.contains("sidebarDelete: \"Delete\""));
+    assert!(script.contains(
+        "configureSvgActionButton(moreButton, t(\"sidebarMoreActions\"), moreIconSvg())"
+    ));
+    assert!(script.contains("createSessionMoreMenuItem(t(\"sidebarExport\"), exportIconSvg()"));
+    assert!(script.contains("createSessionMoreMenuItem(t(\"sidebarMove\"), moveIconSvg()"));
+    assert!(
+        script.contains(
+            "configureSvgActionButton(deleteButton, t(\"sidebarDelete\"), trashIconSvg())"
+        )
+    );
     assert!(script.contains("group.appendChild(moreButton)"));
     assert!(script.contains("installMoreButtonEvents(row, moreButton, openMoreMenu)"));
     assert!(script.contains("installSessionMoreMenuAutoClose(row, moreMenu)"));
@@ -794,6 +879,30 @@ fn pick_page_target_prefers_codex_title_or_url() {
     let picked = pick_page_target(&targets).expect("target should be selected");
 
     assert_eq!(picked.id, "second");
+}
+
+#[test]
+fn pick_page_target_prefers_main_codex_page_over_avatar_overlay() {
+    let targets = vec![
+        target(
+            "overlay",
+            "page",
+            "Codex",
+            "app://-/index.html?initialRoute=%2Favatar-overlay",
+            Some("ws://overlay"),
+        ),
+        target(
+            "main",
+            "page",
+            "Codex",
+            "app://-/index.html",
+            Some("ws://main"),
+        ),
+    ];
+
+    let picked = pick_page_target(&targets).expect("target should be selected");
+
+    assert_eq!(picked.id, "main");
 }
 
 #[test]

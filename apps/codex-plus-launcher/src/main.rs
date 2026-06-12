@@ -173,7 +173,8 @@ async fn activate_existing_codex_app(options: &LaunchOptions) -> anyhow::Result<
             "launch_error": launch_result.as_ref().err().map(|error| error.to_string())
         }),
     );
-    launch_result.map(|_| ())
+    let launch = launch_result?;
+    hooks.wait_for_codex_exit(&launch).await
 }
 
 fn log_launcher_already_running(debug_port: u16) {
@@ -780,6 +781,7 @@ mod tests {
                 .contains("hooks.ensure_injection(options.debug_port, options.helper_port).await")
         );
         assert!(source.contains("injection_ready"));
+        assert!(source.contains("hooks.wait_for_codex_exit(&launch).await"));
     }
 
     #[test]
